@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cute Bear Photoshop Runner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: #0d0a18;
+            color: #f3e8ff;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        .ps-panel {
+            background-color: #1a162b;
+            border: 2px solid #3b2a52;
+        }
+        canvas {
+            display: block;
+            background-color: #080610;
+            image-rendering: auto;
+        }
+        .pop-anim {
+            animation: pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .heart-beat {
+            animation: beat 1s infinite alternate;
+        }
+        @keyframes beat {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.15); }
+        }
+        .tool-active {
+            border-color: #f472b6 !important;
+            box-shadow: 0 0 15px rgba(244, 114, 182, 0.6);
+            opacity: 1 !important;
+            cursor: pointer !important;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between overflow-hidden">
+
+    <!-- Header Panel -->
+    <header class="ps-panel border-b border-purple-800/50 px-4 py-2 flex justify-between items-center text-xs z-10 shadow-lg shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2 font-bold text-pink-300">
+                <span class="bg-gradient-to-tr from-pink-500 to-purple-500 text-white font-black px-2.5 py-0.5 rounded-lg text-sm shadow">Ps</span>
+                <span class="text-purple-100 text-sm tracking-wide hidden sm:inline" id="themeTitle">Park with Sakura Trees</span>
+            </div>
+            <div id="levelBadge" class="bg-purple-900/90 border border-purple-500 text-pink-300 px-3 py-0.5 rounded-full font-bold text-xs shadow-sm">
+                Level 1 / 6
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-3 md:space-x-4">
+            <!-- Hearts / Lives Tracker -->
+            <div class="flex items-center space-x-1 bg-purple-950/70 px-3 py-1 rounded-full border border-purple-700/60">
+                <span class="text-purple-300 font-bold text-[11px] mr-1 hidden sm:inline">LIVES:</span>
+                <div id="heartContainer" class="flex space-x-1 text-sm md:text-base">
+                    <span class="heart-beat">❤️</span>
+                    <span class="heart-beat">❤️</span>
+                    <span class="heart-beat">❤️</span>
+                </div>
+            </div>
+
+            <!-- Stars Tracker -->
+            <div class="flex items-center space-x-1.5 bg-purple-950/70 px-3 py-1 rounded-full border border-purple-700/60">
+                <span class="text-purple-300 font-bold text-[11px] mr-1 hidden sm:inline">STARS:</span>
+                <div id="starContainer" class="flex space-x-1 text-sm md:text-base">
+                    <span class="text-purple-800">★</span>
+                    <span class="text-purple-800">★</span>
+                    <span class="text-purple-800">★</span>
+                </div>
+            </div>
+
+            <!-- Score / Hazard Count -->
+            <div class="flex items-center space-x-2 font-mono font-bold text-xs bg-purple-950/70 px-3 py-1 rounded-full border border-purple-700/60">
+                <span id="scoreText" class="text-pink-300">HAZARDS: 0 / 7</span>
+            </div>
+            
+            <button id="soundToggleBtn" onclick="toggleAudio()" class="p-1.5 text-purple-300 hover:text-white bg-purple-900/50 hover:bg-purple-800 rounded-lg transition" title="Toggle Sound">
+                <svg id="soundIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Area -->
+    <main class="flex-1 flex overflow-hidden relative">
+        <!-- Sidebar Photoshop Tools -->
+        <aside class="ps-panel w-14 md:w-16 flex flex-col items-center py-3 border-r border-purple-800/40 space-y-3 z-10 shrink-0">
+            <div class="text-[9px] font-bold text-purple-300 uppercase tracking-wider">Tools</div>
+            
+            <button id="tool-eraser" onclick="useTool(1)" class="tool-btn relative p-2 rounded-xl border border-purple-800 bg-purple-950/50 text-purple-600 opacity-30 cursor-not-allowed transition-all" title="[1] Magic Eraser">
+                <span class="text-xl">🪄</span>
+                <span class="absolute -top-1 -right-1 bg-pink-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full hidden" id="badge-eraser">1</span>
+            </button>
+
+            <button id="tool-bucket" onclick="useTool(2)" class="tool-btn relative p-2 rounded-xl border border-purple-800 bg-purple-950/50 text-purple-600 opacity-30 cursor-not-allowed transition-all" title="[2] Paint Bucket">
+                <span class="text-xl">🪣</span>
+                <span class="absolute -top-1 -right-1 bg-pink-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full hidden" id="badge-bucket">2</span>
+            </button>
+
+            <button id="tool-lasso" onclick="useTool(3)" class="tool-btn relative p-2 rounded-xl border border-purple-800 bg-purple-950/50 text-purple-600 opacity-30 cursor-not-allowed transition-all" title="[3] Lasso Shield">
+                <span class="text-xl">🪢</span>
+                <span class="absolute -top-1 -right-1 bg-pink-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full hidden" id="badge-lasso">3</span>
+            </button>
+
+            <button id="tool-notes" onclick="useTool(4)" class="tool-btn relative p-2 rounded-xl border border-purple-800 bg-purple-950/50 text-purple-600 opacity-30 cursor-not-allowed transition-all" title="[4] Sticky Note Stairs">
+                <span class="text-xl">📝</span>
+                <span class="absolute -top-1 -right-1 bg-pink-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full hidden" id="badge-notes">4</span>
+            </button>
+
+            <button id="tool-text" onclick="useTool(5)" class="tool-btn relative p-2 rounded-xl border border-purple-800 bg-purple-950/50 text-purple-600 opacity-30 cursor-not-allowed transition-all" title="[5] Text Spell">
+                <span class="text-xl">🔤</span>
+                <span class="absolute -top-1 -right-1 bg-pink-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full hidden" id="badge-text">5</span>
+            </button>
+        </aside>
+
+        <!-- Canvas Container -->
+        <div id="canvasContainer" class="flex-1 relative flex flex-col items-center justify-center p-2 md:p-4 overflow-hidden bg-[#080610]">
+            <canvas id="gameCanvas" class="w-full h-full max-w-[1000px] max-h-[500px] rounded-2xl shadow-2xl border-2 border-purple-700/50"></canvas>
+
+            <!-- Warning Banner -->
+            <div id="warningBanner" class="absolute top-6 right-8 bg-rose-950/90 border border-rose-500 text-rose-200 text-xs px-3 py-1.5 rounded-xl font-bold shadow-lg hidden transition-all duration-300">
+                🔒 Tool not collected yet!
+            </div>
+
+            <!-- Start Modal -->
+            <div id="startModal" class="absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-20">
+                <div class="ps-panel w-11/12 max-w-md rounded-2xl p-6 shadow-2xl border-2 border-pink-500/50 text-center space-y-4 pop-anim">
+                    <div class="w-20 h-20 bg-gradient-to-tr from-pink-400 to-purple-500 rounded-3xl flex items-center justify-center mx-auto shadow-lg text-4xl border-2 border-pink-200">
+                        🐻
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-purple-300 to-yellow-200">CUTE BEAR PHOTOSHOP RUNNER</h1>
+                        <p class="text-xs text-purple-200 mt-1">Help the cute bear collect 5 Photoshop tools & 3 Stars across 6 themed worlds!</p>
+                    </div>
+
+                    <div class="bg-purple-950/80 p-3.5 rounded-xl border border-purple-700/60 text-xs text-purple-200 text-left space-y-1.5 font-mono">
+                        <div class="font-bold text-pink-300 border-b border-purple-800 pb-1">Controls & Instructions:</div>
+                        <div>• <kbd class="bg-purple-800 px-1 rounded text-white">Space</kbd> / <kbd class="bg-purple-800 px-1 rounded text-white">↑</kbd> : Jump over obstacles</div>
+                        <div>• <kbd class="bg-purple-800 px-1 rounded text-white">Shift</kbd> / <kbd class="bg-purple-800 px-1 rounded text-white">↓</kbd> : Transform into Strawberry Shortcake!</div>
+                        <div>• Collect tools & press <kbd class="bg-purple-800 px-1 rounded text-white">1-5</kbd> to activate abilities!</div>
+                        <div class="text-rose-300 font-bold">• Note: Aggressive Watermelons on L6 span full height & MUST be typed away with Text Tool!</div>
+                    </div>
+
+                    <button onclick="startGame()" class="w-full py-3.5 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-black rounded-xl shadow-lg transition transform active:scale-95 text-base flex items-center justify-center gap-2">
+                        <span>🌸 Start Level 1 (Sakura Park)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Item Pickup Modal -->
+            <div id="itemPickupModal" class="absolute inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-40 hidden">
+                <div class="ps-panel w-11/12 max-w-md rounded-2xl p-6 shadow-2xl border-2 border-cyan-400 text-center space-y-4 pop-anim">
+                    <div id="itemIconBox" class="w-20 h-20 bg-gradient-to-tr from-cyan-400 to-blue-600 rounded-3xl flex items-center justify-center mx-auto text-4xl text-white shadow-lg border-2 border-cyan-200">
+                        🪄
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-bold text-cyan-300 uppercase tracking-widest bg-cyan-950 px-3 py-1 rounded-full border border-cyan-700">NEW TOOL UNLOCKED!</span>
+                        <h2 id="itemNameText" class="text-2xl font-black text-white mt-2">Magical Eraser</h2>
+                        <p id="itemKeyText" class="text-xs font-mono font-bold text-yellow-300 mt-1">Press Key [1] to activate</p>
+                    </div>
+
+                    <div class="bg-purple-950/90 p-4 rounded-xl border border-purple-800 text-xs text-purple-100 text-left space-y-2">
+                        <div class="font-bold text-cyan-300 border-b border-purple-800 pb-1">TOOL FUNCTION:</div>
+                        <p id="itemDescText" class="leading-relaxed">You collected Magical Eraser! Press Key [1] to erase Chocolate Bar Watermark Walls blocking your path!</p>
+                    </div>
+
+                    <button onclick="resumeFromItemPickup()" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black rounded-xl shadow transition text-sm">
+                        Got It! Continue →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Text Typing Spell Modal -->
+            <div id="textSpellModal" class="absolute inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 hidden">
+                <div class="ps-panel w-11/12 max-w-sm rounded-2xl p-6 shadow-2xl border-2 border-rose-400 text-center space-y-4 pop-anim">
+                    <div class="w-14 h-14 bg-rose-500/20 text-rose-300 rounded-2xl flex items-center justify-center mx-auto border border-rose-400 text-3xl shadow-lg">
+                        🍉
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-bold text-rose-300 uppercase tracking-widest bg-rose-950 px-2.5 py-1 rounded-full border border-rose-700">TEXT TOOL SPEED SPELL!</span>
+                        <h2 class="text-xl font-black text-white mt-2">Defeat Aggressive Watermelon!</h2>
+                        <p class="text-xs text-purple-300 mt-1">Type the spell word fast to blast the giant watermelon wall!</p>
+                    </div>
+
+                    <div class="bg-purple-950/90 p-4 rounded-xl border border-purple-700 space-y-2">
+                        <div id="targetWordText" class="text-2xl font-black tracking-widest text-yellow-300 font-mono">WATERMELON</div>
+                        <input id="typingSpellInput" type="text" autocomplete="off" placeholder="Type word & press Enter..." class="w-full bg-purple-900/80 border-2 border-pink-400 rounded-lg px-3 py-2 text-center text-white font-mono font-bold focus:outline-none focus:border-yellow-300 uppercase">
+                    </div>
+
+                    <p id="typingErrorText" class="text-xs text-rose-400 font-bold hidden">Spell mismatch! Try again!</p>
+                </div>
+            </div>
+
+            <!-- Status Modal -->
+            <div id="statusModal" class="absolute inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-40 hidden">
+                <div class="ps-panel w-11/12 max-w-md rounded-2xl p-6 shadow-2xl border-2 border-purple-500 text-center space-y-4 pop-anim">
+                    <div id="statusEmojiBox" class="w-16 h-16 bg-gradient-to-tr from-yellow-400 to-pink-500 rounded-2xl flex items-center justify-center mx-auto text-3xl text-white shadow-lg border-2 border-yellow-200">
+                        🎉
+                    </div>
+                    <div>
+                        <h2 id="statusTitle" class="text-2xl font-black text-white">LEVEL COMPLETE!</h2>
+                        <p id="statusDesc" class="text-xs text-purple-200 mt-1">Great job! Get ready for the next challenge.</p>
+                    </div>
+
+                    <button id="statusBtn" onclick="handleStatusAction()" class="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-black rounded-xl shadow transition text-sm">
+                        Next Level →
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer Touch Controls -->
+    <footer class="ps-panel border-t border-purple-800/50 p-2 md:p-3 flex justify-between items-center z-10 shrink-0">
+        <div class="flex space-x-2">
+            <button id="touchDuckBtn" class="bg-purple-900/80 active:bg-purple-700 border border-purple-500/60 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center space-x-1.5 shadow">
+                <span>🍰 SHIFT CAKE</span>
+            </button>
+        </div>
+        <div class="text-[10px] text-purple-300 font-mono hidden sm:block">
+            [Space / ↑] Jump | [Shift / ↓] Strawberry Cake | [1-5] Tools
+        </div>
+        <button id="touchJumpBtn" class="bg-pink-600 active:bg-pink-500 border border-pink-400 text-white font-bold px-6 py-2.5 rounded-xl text-xs flex items-center space-x-1.5 shadow-lg">
+            <span>🦘 JUMP</span>
+        </button>
+    </footer>
+
+    <script>
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('soundIcon');
+            if (soundEnabled) {
+                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z"></path>`;
+            } else {
+                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path>`;
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'jump') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(520, now + 0.15);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'duck') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(360, now);
+                osc.frequency.exponentialRampToValueAtTime(150, now + 0.12);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } else if (type === 'tool') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(660, now + 0.08);
+                osc.frequency.setValueAtTime(880, now + 0.16);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } else if (type === 'star') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.08);
+                osc.frequency.setValueAtTime(783.99, now + 0.16);
+                osc.frequency.setValueAtTime(1046.50, now + 0.24);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            } else if (type === 'hit') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(240, now);
+                osc.frequency.exponentialRampToValueAtTime(70, now + 0.25);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } else if (type === 'spell') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(350, now);
+                osc.frequency.linearRampToValueAtTime(950, now + 0.3);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+        }
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const V_WIDTH = 900;
+        const V_HEIGHT = 450;
+        const GROUND_Y = 370;
+
+        let gameRunning = false;
+        let gamePaused = false;
+        let currentLevel = 1;
+        let lives = 3;
+        let totalStars = 0;
+        let parallaxOffset = 0;
+
+        let unlockedTools = {
+            1: false, // Magic Eraser
+            2: false, // Paint Bucket
+            3: false, // Lasso Tool
+            4: false, // Sticky Notes
+            5: false  // Text Tool
+        };
+
+        let activeLassoShieldTimer = 0;
+
+        const player = {
+            x: 100,
+            y: GROUND_Y - 55,
+            width: 48,
+            height: 55,
+            vy: 0,
+            gravity: 0.8,
+            jumpPower: -13.5,
+            isJumping: false,
+            isDucking: false,
+            animTimer: 0
+        };
+
+        // Level Specifications
+        const LEVEL_CONFIGS = {
+            1: {
+                theme: "Park with Sakura Trees",
+                skyTop: "#ffe4e6", skyBottom: "#fbcfe8",
+                groundColor: "#86efac", dirtColor: "#22c55e",
+                hazards: ['pit', 'spike', 'spike', 'pit', 'spike', 'spike', 'spike'],
+                toolToSpawn: null,
+                hasStar: false
+            },
+            2: {
+                theme: "Candy Land (Chocolate Bar Walls)",
+                skyTop: "#fef08a", skyBottom: "#f472b6",
+                groundColor: "#f472b6", dirtColor: "#db2777",
+                hazards: ['pit', 'spike', 'wall', 'pit', 'spike', 'wall', 'pit', 'spike', 'wall', 'spike'],
+                toolToSpawn: { id: 1, name: "Magical Eraser", icon: "🪄", key: "[1]", desc: "You collected Magical Eraser! Press Key [1] to erase Chocolate Bar Watermark Walls blocking your path!" },
+                hasStar: true,
+                starIndex: 4
+            },
+            3: {
+                theme: "Sunny Beach & Sand Castles",
+                skyTop: "#7dd3fc", skyBottom: "#38bdf8",
+                groundColor: "#fef08a", dirtColor: "#eab308",
+                hazards: ['pit', 'spike', 'wall', 'wide_pit', 'spike', 'pit', 'wall', 'pit', 'spike', 'spike', 'spike'],
+                toolToSpawn: { id: 2, name: "Paint Bucket", icon: "🪣", key: "[2]", desc: "You collected Paint Bucket! Press Key [2] to fill very wide impossible lava pits with solid sand floor!" },
+                hasStar: false
+            },
+            4: {
+                theme: "Night Sky Balloon Festival",
+                skyTop: "#0f172a", skyBottom: "#312e81",
+                groundColor: "#4ade80", dirtColor: "#16a34a",
+                hazards: ['pit', 'spike', 'wall', 'wide_pit', 'strawberry', 'spike', 'wall', 'strawberry', 'wall', 'pit', 'spike'],
+                toolToSpawn: { id: 3, name: "Lasso Tool", icon: "🪢", key: "[3]", desc: "You collected Lasso Tool! Press Key [3] to create a glowing protective shield against Aggressive Strawberries!" },
+                hasStar: true,
+                starIndex: 5
+            },
+            5: {
+                theme: "Sunset Mountains",
+                skyTop: "#ea580c", skyBottom: "#581c87",
+                groundColor: "#a855f7", dirtColor: "#6b21a8",
+                hazards: ['pit', 'spike', 'wall', 'wide_pit', 'cliff', 'strawberry', 'pit', 'spike', 'cliff', 'strawberry', 'pit', 'wall'],
+                toolToSpawn: { id: 4, name: "Sticky Notes", icon: "📝", key: "[4]", desc: "You collected Sticky Notes! Press Key [4] to construct sticky note stairs to climb high Cliffs!" },
+                hasStar: false
+            },
+            6: {
+                theme: "Carnival & Popcorn Booths",
+                skyTop: "#111827", skyBottom: "#831843",
+                groundColor: "#f43f5e", dirtColor: "#be123c",
+                hazards: ['pit', 'spike', 'wall', 'wide_pit', 'cliff', 'strawberry', 'watermelon', 'pit', 'spike', 'wall', 'watermelon', 'spike', 'wall'],
+                toolToSpawn: { id: 5, name: "Text Tool", icon: "🔤", key: "[5]", desc: "You collected Text Tool! Press Key [5] to trigger a Speed Typing Challenge and blast full-height Aggressive Watermelons! (You CANNOT jump over Watermelons!)" },
+                hasStar: true,
+                starIndex: 7
+            }
+        };
+
+        let currentObstacleList = [];
+        let currentHazardIndex = 0;
+        let activeObstacles = [];
+        let activePickups = [];
+        let activeParticles = [];
+
+        // TIMING CONTROL VARIABLES
+        let hazardSpawnTimer = 0;
+        let nextGapFrames = 105; // 1.75 seconds baseline @ 60fps
+        let hazardCompletedCount = 0;
+        let totalLevelHazards = 0;
+        let lastTime = 0;
+
+        function resizeCanvas() {
+            const container = document.getElementById('canvasContainer');
+            const cw = container.clientWidth - 16;
+            const ch = container.clientHeight - 16;
+            
+            let scale = Math.min(cw / V_WIDTH, ch / V_HEIGHT);
+            canvas.width = V_WIDTH * scale;
+            canvas.height = V_HEIGHT * scale;
+            ctx.imageSmoothingEnabled = true;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        const keys = {};
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+                if (!player.isJumping && gameRunning && !gamePaused) {
+                    player.vy = player.jumpPower;
+                    player.isJumping = true;
+                    playSound('jump');
+                }
+            }
+            if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'ArrowDown' || e.code === 'KeyS') {
+                if (!player.isDucking && gameRunning && !gamePaused) {
+                    player.isDucking = true;
+                    playSound('duck');
+                }
+            }
+            if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].includes(e.code)) {
+                const toolNum = parseInt(e.code.replace('Digit', ''));
+                useTool(toolNum);
+            }
+            keys[e.code] = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'ArrowDown' || e.code === 'KeyS') {
+                player.isDucking = false;
+            }
+            keys[e.code] = false;
+        });
+
+        const touchJumpBtn = document.getElementById('touchJumpBtn');
+        const touchDuckBtn = document.getElementById('touchDuckBtn');
+
+        touchJumpBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!player.isJumping && gameRunning && !gamePaused) {
+                player.vy = player.jumpPower;
+                player.isJumping = true;
+                playSound('jump');
+            }
+        });
+
+        touchDuckBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (gameRunning && !gamePaused) {
+                player.isDucking = true;
+                playSound('duck');
+            }
+        });
+        touchDuckBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            player.isDucking = false;
+        });
+
+        function useTool(toolId) {
+            if (!gameRunning || gamePaused) return;
+
+            if (!unlockedTools[toolId]) {
+                showWarningBanner("🔒 Tool not collected yet!");
+                return;
+            }
+
+            if (toolId === 1) { // Magic Eraser
+                let target = activeObstacles.find(o => o.type === 'wall' && o.x > player.x - 30);
+                if (target) {
+                    target.destroyed = true;
+                    spawnParticles(target.x + target.width/2, target.y + target.height/2, '#c084fc', 16);
+                    playSound('tool');
+                } else {
+                    showWarningBanner("No Watermark Wall ahead!");
+                }
+            } else if (toolId === 2) { // Paint Bucket
+                let target = activeObstacles.find(o => o.type === 'wide_pit' && o.x > player.x - 80);
+                if (target) {
+                    target.filled = true;
+                    spawnParticles(target.x + target.width/2, GROUND_Y, '#f472b6', 16);
+                    playSound('tool');
+                } else {
+                    showWarningBanner("No Very Wide Pit ahead!");
+                }
+            } else if (toolId === 3) { // Lasso Shield
+                activeLassoShieldTimer = 220;
+                playSound('tool');
+            } else if (toolId === 4) { // Sticky Notes
+                let target = activeObstacles.find(o => o.type === 'cliff' && o.x > player.x - 60);
+                if (target) {
+                    target.hasStairs = true;
+                    spawnParticles(target.x, GROUND_Y - 40, '#fef08a', 16);
+                    playSound('tool');
+                } else {
+                    showWarningBanner("No Cliff ahead!");
+                }
+            } else if (toolId === 5) { // Text Tool
+                let target = activeObstacles.find(o => o.type === 'watermelon' && o.x > player.x - 50);
+                if (target) {
+                    openTextSpellModal(target);
+                } else {
+                    showWarningBanner("No Watermelon ahead!");
+                }
+            }
+        }
+
+        function showWarningBanner(msg) {
+            const banner = document.getElementById('warningBanner');
+            banner.innerText = msg;
+            banner.classList.remove('hidden');
+            setTimeout(() => {
+                banner.classList.add('hidden');
+            }, 1200);
+        }
+
+        let activeWatermelonTarget = null;
+
+        function openTextSpellModal(target) {
+            gamePaused = true;
+            activeWatermelonTarget = target;
+            const words = ["WATERMELON", "CARNIVAL", "SWEET", "PHOTOSHOP", "CREATIVE", "TEXTTOOL"];
+            const word = words[Math.floor(Math.random() * words.length)];
+            
+            document.getElementById('targetWordText').innerText = word;
+            const input = document.getElementById('typingSpellInput');
+            input.value = "";
+            document.getElementById('typingErrorText').classList.add('hidden');
+            document.getElementById('textSpellModal').classList.remove('hidden');
+            setTimeout(() => input.focus(), 100);
+
+            input.onkeyup = (e) => {
+                if (e.key === 'Enter') {
+                    if (input.value.trim().toUpperCase() === word) {
+                        if (activeWatermelonTarget) {
+                            activeWatermelonTarget.destroyed = true;
+                            spawnParticles(activeWatermelonTarget.x, activeWatermelonTarget.y + 100, '#fb7185', 28);
+                            playSound('spell');
+                        }
+                        document.getElementById('textSpellModal').classList.add('hidden');
+                        gamePaused = false;
+                    } else {
+                        document.getElementById('typingErrorText').classList.remove('hidden');
+                    }
+                }
+            };
+        }
+
+        function initLevel(lvlIndex) {
+            currentLevel = lvlIndex;
+            const config = LEVEL_CONFIGS[lvlIndex];
+            config.starSpawned = false;
+            
+            document.getElementById('levelBadge').innerText = `Level ${lvlIndex} / 6`;
+            document.getElementById('themeTitle').innerText = config.theme;
+
+            currentObstacleList = [...config.hazards];
+            currentHazardIndex = 0;
+            activeObstacles = [];
+            activePickups = [];
+            activeParticles = [];
+
+            // STRICTLY RESET TIMING VARIABLES TO PREVENT SPEED-UP ACCUMULATION
+            hazardSpawnTimer = 0;
+            // 90 to 120 frames = 1.5s to 2.0s @ 60 FPS
+            nextGapFrames = Math.floor(90 + Math.random() * 30); 
+            hazardCompletedCount = 0;
+            totalLevelHazards = currentObstacleList.length;
+            lastTime = performance.now();
+
+            player.y = GROUND_Y - player.height;
+            player.vy = 0;
+            player.isJumping = false;
+            player.isDucking = false;
+
+            // Spawn Tool pickup safely on clear ground at start of level
+            if (config.toolToSpawn && !unlockedTools[config.toolToSpawn.id]) {
+                setTimeout(() => {
+                    if (gameRunning && !gamePaused) {
+                        activePickups.push({
+                            type: 'tool',
+                            toolData: config.toolToSpawn,
+                            x: V_WIDTH + 50,
+                            y: GROUND_Y - 45,
+                            width: 38,
+                            height: 38
+                        });
+                    }
+                }, 1000);
+            }
+
+            updateToolbarUI();
+            updateHUD();
+        }
+
+        function updateToolbarUI() {
+            for (let id = 1; id <= 5; id++) {
+                const btn = document.getElementById(`tool-${getToolKeyName(id)}`);
+                const badge = document.getElementById(`badge-${getToolKeyName(id)}`);
+                if (unlockedTools[id]) {
+                    btn.classList.add('tool-active');
+                    btn.classList.remove('opacity-30', 'cursor-not-allowed');
+                    badge.classList.remove('hidden');
+                } else {
+                    btn.classList.remove('tool-active');
+                    btn.classList.add('opacity-30', 'cursor-not-allowed');
+                    badge.classList.add('hidden');
+                }
+            }
+        }
+
+        function getToolKeyName(id) {
+            return ['eraser', 'bucket', 'lasso', 'notes', 'text'][id - 1];
+        }
+
+        function updateHUD() {
+            let heartsHtml = '';
+            for (let i = 0; i < 3; i++) {
+                heartsHtml += i < lives ? `<span class="heart-beat">❤️</span>` : `<span class="opacity-30">🖤</span>`;
+            }
+            document.getElementById('heartContainer').innerHTML = heartsHtml;
+
+            let starsHtml = '';
+            for (let i = 0; i < 3; i++) {
+                starsHtml += i < totalStars ? `<span class="text-yellow-400 font-bold">★</span>` : `<span class="text-purple-800">★</span>`;
+            }
+            document.getElementById('starContainer').innerHTML = starsHtml;
+
+            document.getElementById('scoreText').innerText = `HAZARDS: ${hazardCompletedCount} / ${totalLevelHazards}`;
+        }
+
+        function startGame() {
+            document.getElementById('startModal').classList.add('hidden');
+            lives = 3;
+            totalStars = 0;
+            for (let k in unlockedTools) unlockedTools[k] = false;
+            initLevel(1);
+            gameRunning = true;
+            gamePaused = false;
+            requestAnimationFrame(gameLoop);
+        }
+
+        function handleStatusAction() {
+            document.getElementById('statusModal').classList.add('hidden');
+            if (lives <= 0) {
+                // Completely reset to Level 1 and restore full hearts
+                lives = 3;
+                for (let k in unlockedTools) unlockedTools[k] = false;
+                initLevel(1);
+            } else if (currentLevel > 6) {
+                lives = 3;
+                totalStars = 0;
+                for (let k in unlockedTools) unlockedTools[k] = false;
+                initLevel(1);
+            } else {
+                initLevel(currentLevel);
+            }
+            gameRunning = true;
+            gamePaused = false;
+        }
+
+        function gameLoop(timestamp) {
+            if (!gameRunning) return;
+
+            if (!lastTime) lastTime = timestamp;
+            const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+            lastTime = timestamp;
+
+            if (!gamePaused) {
+                update(dt);
+                render();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update(dt) {
+            player.animTimer += 0.2;
+            parallaxOffset += 1.5;
+
+            if (player.isJumping) {
+                player.vy += player.gravity;
+                player.y += player.vy;
+
+                if (player.y >= GROUND_Y - (player.isDucking ? 32 : player.height)) {
+                    player.y = GROUND_Y - (player.isDucking ? 32 : player.height);
+                    player.vy = 0;
+                    player.isJumping = false;
+                }
+            } else {
+                player.y = GROUND_Y - (player.isDucking ? 32 : player.height);
+            }
+
+            if (activeLassoShieldTimer > 0) activeLassoShieldTimer--;
+
+            // STRICT OBSTACLE GAP: 1.5s to 2.0s (90 to 120 frames at 60 FPS)
+            hazardSpawnTimer++;
+            if (hazardSpawnTimer >= nextGapFrames && currentHazardIndex < currentObstacleList.length) {
+                const hazardType = currentObstacleList[currentHazardIndex];
+                spawnObstacle(hazardType);
+                currentHazardIndex++;
+                hazardSpawnTimer = 0;
+                // Generate next gap duration strictly between 1.5s and 2.0s
+                nextGapFrames = Math.floor(90 + Math.random() * 30);
+            }
+
+            const config = LEVEL_CONFIGS[currentLevel];
+            if (config.hasStar && currentHazardIndex === config.starIndex && !config.starSpawned) {
+                config.starSpawned = true;
+                activePickups.push({
+                    type: 'star',
+                    x: V_WIDTH + 30,
+                    y: GROUND_Y - 110,
+                    width: 32,
+                    height: 32
+                });
+            }
+
+            const speed = 5.5; // Constant baseline scroll speed to prevent speed acceleration
+
+            // Pickups Update
+            for (let i = activePickups.length - 1; i >= 0; i--) {
+                let p = activePickups[i];
+                p.x -= speed;
+
+                if (checkCollision(player, p)) {
+                    if (p.type === 'tool') {
+                        unlockedTools[p.toolData.id] = true;
+                        updateToolbarUI();
+                        triggerItemPickupModal(p.toolData);
+                    } else if (p.type === 'star') {
+                        totalStars++;
+                        playSound('star');
+                        spawnParticles(p.x, p.y, '#facc15', 18);
+                        updateHUD();
+                    }
+                    activePickups.splice(i, 1);
+                    continue;
+                }
+
+                if (p.x < -50) activePickups.splice(i, 1);
+            }
+
+            // Obstacles Update
+            for (let i = activeObstacles.length - 1; i >= 0; i--) {
+                let obs = activeObstacles[i];
+                obs.x -= speed;
+
+                if (!obs.destroyed && !obs.passed) {
+                    if (checkHazardCollision(player, obs)) {
+                        handlePlayerHit();
+                        return;
+                    }
+                }
+
+                if (obs.x + obs.width < player.x && !obs.passed) {
+                    obs.passed = true;
+                    hazardCompletedCount++;
+                    updateHUD();
+                }
+
+                if (obs.x < -250) {
+                    activeObstacles.splice(i, 1);
+                }
+            }
+
+            // Particles
+            for (let i = activeParticles.length - 1; i >= 0; i--) {
+                let pt = activeParticles[i];
+                pt.x += pt.vx;
+                pt.y += pt.vy;
+                pt.alpha -= 0.02;
+                if (pt.alpha <= 0) activeParticles.splice(i, 1);
+            }
+
+            if (currentHazardIndex >= currentObstacleList.length && activeObstacles.length === 0) {
+                handleLevelComplete();
+            }
+        }
+
+        function spawnObstacle(type) {
+            let obs = {
+                type: type,
+                x: V_WIDTH + 20,
+                width: 40,
+                height: 40,
+                y: GROUND_Y - 40,
+                destroyed: false,
+                filled: false,
+                hasStairs: false,
+                passed: false
+            };
+
+            if (type === 'pit') {
+                obs.width = 110;
+                obs.height = 35;
+                obs.y = GROUND_Y;
+            } else if (type === 'spike') {
+                obs.width = 42;
+                obs.height = 42;
+                obs.y = GROUND_Y - 42;
+            } else if (type === 'wall') {
+                obs.width = 38;
+                obs.height = 115;
+                obs.y = GROUND_Y - 115;
+            } else if (type === 'wide_pit') {
+                obs.width = 220;
+                obs.height = 35;
+                obs.y = GROUND_Y;
+            } else if (type === 'strawberry') {
+                obs.width = 44;
+                obs.height = 44;
+                obs.y = GROUND_Y - 45;
+            } else if (type === 'cliff') {
+                obs.width = 70;
+                obs.height = 125;
+                obs.y = GROUND_Y - 125;
+            } else if (type === 'watermelon') {
+                obs.width = 65;
+                obs.height = GROUND_Y; 
+                obs.y = 0;
+            }
+
+            activeObstacles.push(obs);
+        }
+
+        function checkCollision(a, b) {
+            return a.x < b.x + b.width &&
+                   a.x + a.width > b.x &&
+                   a.y < b.y + b.height &&
+                   a.y + a.height > b.y;
+        }
+
+        function checkHazardCollision(p, o) {
+            const pHeight = p.isDucking ? 32 : p.height;
+            const pY = p.isDucking ? GROUND_Y - 32 : p.y;
+
+            if (o.type === 'strawberry' && activeLassoShieldTimer > 0) {
+                o.destroyed = true;
+                spawnParticles(o.x, o.y, '#f43f5e', 14);
+                return false;
+            }
+
+            if (o.type === 'watermelon') {
+                if (!o.destroyed && p.x + p.width - 8 > o.x && p.x + 8 < o.x + o.width) {
+                    return true;
+                }
+                return false;
+            }
+
+            if (o.type === 'pit') {
+                if (!p.isJumping && p.x + p.width - 12 > o.x && p.x + 12 < o.x + o.width) {
+                    return true;
+                }
+            } else if (o.type === 'wide_pit') {
+                if (!o.filled && !p.isJumping && p.x + p.width - 12 > o.x && p.x + 12 < o.x + o.width) {
+                    return true;
+                }
+            } else if (o.type === 'cliff') {
+                if (!o.hasStairs && p.x + p.width > o.x && p.x < o.x + o.width && pY + pHeight > o.y) {
+                    return true;
+                }
+            } else if (o.type === 'wall' || o.type === 'spike' || o.type === 'strawberry') {
+                if (p.x + p.width - 8 > o.x && p.x + 8 < o.x + o.width && pY + pHeight - 5 > o.y && pY < o.y + o.height) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function handlePlayerHit() {
+            lives--;
+            playSound('hit');
+            updateHUD();
+
+            if (lives <= 0) {
+                showStatusModal("💀 GAME OVER!", "You lost all 3 hearts! Resetting to Level 1...", "🔄 Start Level 1");
+            } else {
+                showStatusModal("💔 OUCH!", `You hit an obstacle! ${lives} ${lives === 1 ? 'heart' : 'hearts'} remaining. Respawning current level...`, "🔁 Retry Level");
+            }
+        }
+
+        function handleLevelComplete() {
+            gamePaused = true;
+            if (currentLevel >= 6) {
+                showStatusModal("🏆 MASTER ARTIST!", "Congratulations! You collected all 5 tools, 3 stars, and completed all 6 themed worlds!", "🌟 Play Again");
+            } else {
+                currentLevel++;
+                showStatusModal("🎉 LEVEL CLEAR!", `Ready for Level ${currentLevel}: ${LEVEL_CONFIGS[currentLevel].theme}?`, "Next Level →");
+            }
+        }
+
+        function triggerItemPickupModal(tool) {
+            gamePaused = true;
+            playSound('tool');
+            document.getElementById('itemIconBox').innerText = tool.icon;
+            document.getElementById('itemNameText').innerText = tool.name;
+            document.getElementById('itemKeyText').innerText = `Press Key ${tool.key} to activate`;
+            document.getElementById('itemDescText').innerText = tool.desc;
+            document.getElementById('itemPickupModal').classList.remove('hidden');
+        }
+
+        function resumeFromItemPickup() {
+            document.getElementById('itemPickupModal').classList.add('hidden');
+            gamePaused = false;
+        }
+
+        function showStatusModal(title, desc, btnText) {
+            gamePaused = true;
+            document.getElementById('statusTitle').innerText = title;
+            document.getElementById('statusDesc').innerText = desc;
+            document.getElementById('statusBtn').innerText = btnText;
+            document.getElementById('statusModal').classList.remove('hidden');
+        }
+
+        function spawnParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                activeParticles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    color: color,
+                    alpha: 1.0,
+                    size: Math.random() * 4 + 2
+                });
+            }
+        }
+
+        function render() {
+            const config = LEVEL_CONFIGS[currentLevel];
+
+            // Sky Gradient Background
+            let skyGradient = ctx.createLinearGradient(0, 0, 0, V_HEIGHT);
+            skyGradient.addColorStop(0, config.skyTop);
+            skyGradient.addColorStop(1, config.skyBottom);
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+
+            // Render Exact Background Themes for each level
+            renderDetailedThemeBackground(currentLevel);
+
+            // Ground Terrain
+            ctx.fillStyle = config.groundColor;
+            ctx.fillRect(0, GROUND_Y, V_WIDTH, V_HEIGHT - GROUND_Y);
+            ctx.fillStyle = config.dirtColor;
+            ctx.fillRect(0, GROUND_Y + 12, V_WIDTH, V_HEIGHT - GROUND_Y - 12);
+
+            // Render Obstacles and Pickups
+            activeObstacles.forEach(obs => renderObstacle(obs));
+            activePickups.forEach(p => renderPickup(p));
+
+            // Kawaii Bear Player / Cake Morph
+            renderCuteBearPlayer();
+
+            // Particle Effects
+            activeParticles.forEach(pt => {
+                ctx.save();
+                ctx.globalAlpha = pt.alpha;
+                ctx.fillStyle = pt.color;
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+        }
+
+        function renderDetailedThemeBackground(lvl) {
+            ctx.save();
+            const p = parallaxOffset;
+
+            if (lvl === 1) { // Level 1 - Sakura Park
+                ctx.fillStyle = "rgba(251, 113, 133, 0.25)";
+                ctx.beginPath();
+                ctx.arc((200 - p * 0.2) % (V_WIDTH + 300) - 100, 340, 200, Math.PI, 0);
+                ctx.arc((650 - p * 0.2) % (V_WIDTH + 300) - 100, 350, 240, Math.PI, 0);
+                ctx.fill();
+
+                for (let i = 0; i < 4; i++) {
+                    let tx = ((i * 260) - p * 0.5) % (V_WIDTH + 200) - 50;
+                    ctx.fillStyle = "#78350f";
+                    ctx.fillRect(tx - 6, GROUND_Y - 50, 12, 50);
+                    ctx.fillStyle = "#f472b6";
+                    ctx.beginPath();
+                    ctx.arc(tx, GROUND_Y - 70, 38, 0, Math.PI * 2);
+                    ctx.arc(tx - 18, GROUND_Y - 55, 26, 0, Math.PI * 2);
+                    ctx.arc(tx + 18, GROUND_Y - 55, 26, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = "#fbcfe8";
+                    ctx.beginPath();
+                    ctx.arc(tx - 6, GROUND_Y - 75, 22, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.fillStyle = "#f472b6";
+                for (let petal = 0; petal < 12; petal++) {
+                    let px = (petal * 80 + p * 1.2) % V_WIDTH;
+                    let py = (petal * 35 + p * 0.8) % (GROUND_Y - 20);
+                    ctx.beginPath();
+                    ctx.ellipse(px, py, 4, 2, Math.PI / 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+            } else if (lvl === 2) { // Level 2 - Candy Land with ONLY Lollipops
+                const candyColors = ["#f43f5e", "#06b6d4", "#a855f7", "#f59e0b", "#10b981"];
+                for (let i = 0; i < 7; i++) {
+                    let lx = ((i * 150) - p * 0.4) % (V_WIDTH + 180) - 30;
+                    let lHeight = 55 + (i % 3) * 15;
+                    let lRadius = 22 + (i % 2) * 6;
+                    let color = candyColors[i % candyColors.length];
+
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(lx - 4, GROUND_Y - lHeight, 8, lHeight);
+
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.arc(lx, GROUND_Y - lHeight - 10, lRadius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+                    ctx.lineWidth = 3.5;
+                    ctx.beginPath();
+                    ctx.arc(lx, GROUND_Y - lHeight - 10, lRadius * 0.55, 0, Math.PI * 1.3);
+                    ctx.stroke();
+
+                    ctx.fillStyle = "#ffffff";
+                    ctx.beginPath();
+                    ctx.arc(lx - lRadius * 0.4, GROUND_Y - lHeight - 10 - lRadius * 0.4, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+            } else if (lvl === 3) { // Level 3 - Beach
+                ctx.fillStyle = "#38bdf8";
+                ctx.fillRect(0, 200, V_WIDTH, GROUND_Y - 200);
+
+                ctx.fillStyle = "#e0f2fe";
+                for (let w = 0; w < 7; w++) {
+                    let wx = ((w * 150) - p * 0.5) % (V_WIDTH + 100) - 30;
+                    ctx.beginPath();
+                    ctx.arc(wx, 230, 22, Math.PI, 0);
+                    ctx.fill();
+                }
+
+                for (let sc = 0; sc < 3; sc++) {
+                    let sx = ((sc * 320) - p * 0.3) % (V_WIDTH + 200) - 40;
+                    ctx.fillStyle = "#eab308";
+                    ctx.fillRect(sx, GROUND_Y - 35, 60, 35);
+                    ctx.fillRect(sx + 5, GROUND_Y - 55, 18, 20);
+                    ctx.fillRect(sx + 37, GROUND_Y - 55, 18, 20);
+                    ctx.fillRect(sx + 20, GROUND_Y - 65, 20, 30);
+                    ctx.fillStyle = "#ef4444";
+                    ctx.beginPath();
+                    ctx.moveTo(sx + 30, GROUND_Y - 75);
+                    ctx.lineTo(sx + 40, GROUND_Y - 70);
+                    ctx.lineTo(sx + 30, GROUND_Y - 65);
+                    ctx.fill();
+                }
+
+            } else if (lvl === 4) { // Level 4 - Night Sky Balloon Festival
+                ctx.fillStyle = "#fef08a";
+                for (let st = 0; st < 20; st++) {
+                    let sx = (st * 45 + p * 0.05) % V_WIDTH;
+                    let sy = (st * 18) % 180;
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                const bColors = ["#f43f5e", "#fbbf24", "#a855f7", "#06b6d4"];
+                for (let b = 0; b < 4; b++) {
+                    let bx = ((b * 240) - p * 0.3) % (V_WIDTH + 150) - 40;
+                    let by = 60 + (b % 2) * 55;
+                    ctx.fillStyle = bColors[b % bColors.length];
+                    ctx.beginPath();
+                    ctx.ellipse(bx, by, 22, 28, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(bx - 22, by - 4, 44, 8);
+                    ctx.fillStyle = "#78350f";
+                    ctx.fillRect(bx - 5, by + 30, 10, 8);
+                }
+
+            } else if (lvl === 5) { // Level 5 - Sunset Mountains
+                ctx.fillStyle = "rgba(88, 28, 135, 0.4)";
+                ctx.beginPath();
+                ctx.moveTo(0, GROUND_Y);
+                ctx.lineTo(150, 180);
+                ctx.lineTo(380, GROUND_Y);
+                ctx.lineTo(600, 160);
+                ctx.lineTo(V_WIDTH, GROUND_Y);
+                ctx.fill();
+
+                ctx.fillStyle = "rgba(58, 12, 95, 0.7)";
+                ctx.beginPath();
+                ctx.moveTo(0, GROUND_Y);
+                ctx.lineTo(250, 220);
+                ctx.lineTo(480, GROUND_Y);
+                ctx.lineTo(750, 200);
+                ctx.lineTo(V_WIDTH, GROUND_Y);
+                ctx.fill();
+
+                ctx.fillStyle = "#fde047";
+                ctx.beginPath();
+                ctx.arc(V_WIDTH / 2, 240, 50, 0, Math.PI * 2);
+                ctx.fill();
+
+            } else if (lvl === 6) { // Level 6 - Carnival & Popcorn Booths
+                for (let t = 0; t < 2; t++) {
+                    let tx = ((t * 450) - p * 0.3) % (V_WIDTH + 200) - 50;
+                    ctx.fillStyle = "#be123c";
+                    ctx.beginPath();
+                    ctx.moveTo(tx, GROUND_Y - 120);
+                    ctx.lineTo(tx + 70, GROUND_Y);
+                    ctx.lineTo(tx - 70, GROUND_Y);
+                    ctx.fill();
+
+                    ctx.fillStyle = "#fef08a";
+                    ctx.beginPath();
+                    ctx.moveTo(tx, GROUND_Y - 120);
+                    ctx.lineTo(tx + 22, GROUND_Y);
+                    ctx.lineTo(tx - 22, GROUND_Y);
+                    ctx.fill();
+                }
+
+                for (let pb = 0; pb < 3; pb++) {
+                    let bx = ((pb * 300) - p * 0.4) % (V_WIDTH + 200) - 30;
+                    ctx.fillStyle = "#dc2626";
+                    ctx.fillRect(bx, GROUND_Y - 55, 55, 55);
+                    ctx.fillStyle = "#fef08a";
+                    ctx.fillRect(bx + 4, GROUND_Y - 50, 47, 22);
+                    ctx.fillStyle = "#1e1b4b";
+                    ctx.font = "bold 10px Fredoka";
+                    ctx.fillText("🍿 POPCORN", bx + 6, GROUND_Y - 35);
+                }
+
+                ctx.strokeStyle = "#facc15";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, 45);
+                ctx.quadraticCurveTo(V_WIDTH/2, 85, V_WIDTH, 45);
+                ctx.stroke();
+
+                ctx.font = "16px sans-serif";
+                for (let f = 0; f < V_WIDTH; f += 40) {
+                    ctx.fillText("🚩", f, 60);
+                }
+            }
+            ctx.restore();
+        }
+
+        function renderObstacle(obs) {
+            ctx.save();
+            if (obs.type === 'pit') {
+                ctx.fillStyle = "#ef4444";
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                
+                ctx.fillStyle = "#fef08a";
+                for (let b = 10; b < obs.width - 10; b += 25) {
+                    ctx.beginPath();
+                    ctx.arc(obs.x + b, obs.y + 12, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            } else if (obs.type === 'wide_pit') {
+                if (obs.filled) {
+                    ctx.fillStyle = "#fef08a";
+                    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                    ctx.fillStyle = "#78350f";
+                    ctx.font = "bold 13px Fredoka";
+                    ctx.fillText("🏝️ Filled Safe Sand Bridge!", obs.x + 25, obs.y + 22);
+                } else {
+                    ctx.fillStyle = "#dc2626";
+                    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+
+                    ctx.fillStyle = "#facc15";
+                    for (let b = 15; b < obs.width - 15; b += 30) {
+                        ctx.beginPath();
+                        ctx.arc(obs.x + b, obs.y + 14, 7, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            } else if (obs.type === 'spike') {
+                ctx.fillStyle = "#94a3b8";
+                ctx.beginPath();
+                ctx.moveTo(obs.x, obs.y + obs.height);
+                ctx.lineTo(obs.x + obs.width/2, obs.y);
+                ctx.lineTo(obs.x + obs.width, obs.y + obs.height);
+                ctx.fill();
+            } else if (obs.type === 'wall') {
+                if (!obs.destroyed) {
+                    if (currentLevel === 2) {
+                        ctx.fillStyle = "#451a03";
+                        ctx.beginPath();
+                        ctx.roundRect(obs.x, obs.y, obs.width, obs.height, 6);
+                        ctx.fill();
+                        ctx.fillStyle = "#78350f";
+                        for (let row = 0; row < 4; row++) {
+                            ctx.fillRect(obs.x + 4, obs.y + 6 + row*26, obs.width - 8, 20);
+                        }
+                        ctx.fillStyle = "#fef08a";
+                        ctx.font = "bold 10px sans-serif";
+                        ctx.fillText("CHOCO", obs.x + 2, obs.y + 58);
+                    } else {
+                        ctx.fillStyle = "rgba(168, 85, 247, 0.9)";
+                        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                        ctx.fillStyle = "#ffffff";
+                        ctx.font = "bold 10px sans-serif";
+                        ctx.fillText("WATERMARK", obs.x + 1, obs.y + 60);
+                    }
+                }
+            } else if (obs.type === 'cliff') {
+                ctx.fillStyle = "#475569";
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                if (obs.hasStairs) {
+                    ctx.fillStyle = "#fef08a";
+                    for (let s = 0; s < 4; s++) {
+                        ctx.fillRect(obs.x - 20 + (s*10), GROUND_Y - (s*30), 25, 10);
+                    }
+                }
+            } else if (obs.type === 'strawberry') {
+                if (!obs.destroyed) {
+                    ctx.font = "34px sans-serif";
+                    ctx.fillText("🍓", obs.x, obs.y + 34);
+                }
+            } else if (obs.type === 'watermelon') {
+                if (!obs.destroyed) {
+                    ctx.fillStyle = "#15803d";
+                    ctx.fillRect(obs.x, 0, obs.width, GROUND_Y);
+                    
+                    ctx.fillStyle = "#be123c";
+                    ctx.fillRect(obs.x + 8, 0, obs.width - 16, GROUND_Y);
+
+                    ctx.fillStyle = "#000000";
+                    for (let seedY = 30; seedY < GROUND_Y; seedY += 45) {
+                        ctx.beginPath();
+                        ctx.ellipse(obs.x + obs.width/2, seedY, 3, 6, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    ctx.fillStyle = "#fef08a";
+                    ctx.font = "bold 12px Fredoka";
+                    ctx.fillText("TYPE SPELL [5]", obs.x - 8, GROUND_Y / 2);
+                }
+            }
+            ctx.restore();
+        }
+
+        function renderPickup(p) {
+            ctx.save();
+            if (p.type === 'tool') {
+                ctx.fillStyle = "#06b6d4";
+                ctx.beginPath();
+                ctx.arc(p.x + 19, p.y + 19, 22, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.font = "22px sans-serif";
+                ctx.fillText(p.toolData.icon, p.x + 7, p.y + 27);
+            } else if (p.type === 'star') {
+                ctx.font = "30px sans-serif";
+                ctx.fillText("⭐", p.x, p.y + 26);
+            }
+            ctx.restore();
+        }
+
+        function renderCuteBearPlayer() {
+            ctx.save();
+
+            const pX = player.x;
+            const pY = player.isDucking ? GROUND_Y - 32 : player.y;
+
+            if (player.isDucking) {
+                // Strawberry Shortcake Morph
+                ctx.fillStyle = "#fbcfe8";
+                ctx.beginPath();
+                ctx.roundRect(pX, pY + 6, 56, 26, 8);
+                ctx.fill();
+
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.roundRect(pX, pY + 4, 56, 8, 4);
+                ctx.fill();
+
+                ctx.font = "20px sans-serif";
+                ctx.fillText("🍓", pX + 18, pY + 8);
+
+                ctx.fillStyle = "#451a03";
+                ctx.beginPath();
+                ctx.arc(pX + 16, pY + 20, 2, 0, Math.PI * 2);
+                ctx.arc(pX + 38, pY + 20, 2, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                // Kawaii Bear Character
+                ctx.fillStyle = "#fb923c";
+                ctx.beginPath();
+                ctx.arc(pX + 11, pY + 6, 9, 0, Math.PI * 2);
+                ctx.arc(pX + 37, pY + 6, 9, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = "#f472b6";
+                ctx.beginPath();
+                ctx.arc(pX + 11, pY + 6, 5, 0, Math.PI * 2);
+                ctx.arc(pX + 37, pY + 6, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = "#fb923c";
+                ctx.beginPath();
+                ctx.roundRect(pX + 5, pY + 18, 38, 35, 14);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(pX + 24, pY + 18, 20, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = "#fff7ed";
+                ctx.beginPath();
+                ctx.ellipse(pX + 24, pY + 23, 9, 7, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = "#271c19";
+                ctx.beginPath();
+                ctx.arc(pX + 17, pY + 16, 3.5, 0, Math.PI * 2);
+                ctx.arc(pX + 31, pY + 16, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.arc(pX + 16, pY + 15, 1.2, 0, Math.PI * 2);
+                ctx.arc(pX + 30, pY + 15, 1.2, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = "#fb7185";
+                ctx.beginPath();
+                ctx.arc(pX + 12, pY + 22, 4, 0, Math.PI * 2);
+                ctx.arc(pX + 36, pY + 22, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = "#7c2d12";
+                ctx.beginPath();
+                ctx.arc(pX + 24, pY + 20, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = "#f43f5e";
+                ctx.fillRect(pX + 10, pY + 34, 28, 6);
+
+                ctx.fillStyle = "#ea580c";
+                const legOffset = Math.sin(player.animTimer) * 5;
+                ctx.beginPath();
+                ctx.arc(pX + 14 + legOffset, pY + 52, 5, 0, Math.PI * 2);
+                ctx.arc(pX + 34 - legOffset, pY + 52, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            if (activeLassoShieldTimer > 0) {
+                ctx.strokeStyle = "#f472b6";
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(pX + 24, pY + 22, 44, 0, Math.PI * 2);tx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        resizeCanvas();
+    </script>
+</body>
+</html>
